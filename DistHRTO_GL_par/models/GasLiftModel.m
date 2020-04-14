@@ -115,5 +115,5 @@ par.dx0 = [1.32.*ones(n_w,1);0.8.*ones(n_w,1);6.*ones(n_w,1)];
 par.lbx = [0.01.*ones(n_w,1);0.01.*ones(n_w,1);0.01.*ones(n_w,1)];
 par.ubx = [1e7.*ones(n_w,1);1e7.*ones(n_w,1);1e7.*ones(n_w,1)];
 par.u0 = 1.*ones(n_w,1);
-par.lbu = 0.5.*ones(n_w,1);
+par.lbu = 1.*ones(n_w,1);
 par.ubu = 10.*ones(n_w,1);
