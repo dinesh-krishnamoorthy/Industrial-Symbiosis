@@ -186,7 +186,7 @@ for sim_k = 1:nIter
         primal_residual = g1_opt + g2_opt + g3_opt ;
         
         % Update Lagrange multiplier
-        lambda = max(0,lambda + rho*primal_residual);
+        lambda = lambda + rho*primal_residual;
         
         dlambda = lambda - lambda0;
         lambda0 = lambda;
