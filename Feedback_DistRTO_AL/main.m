@@ -1,0 +1,118 @@
+close all
+clear
+clc
+addpath(genpath(pwd))
+
+import casadi.*
+
+%% Simulation setup
+global pO pGL ts sim_k qGLMax QgMax rho
+
+ts = 1;     % Sampling time in seconds
+T_sim = 10; % Simulation time in hours
+
+nIter = T_sim*3600/ts;
+%%  Load well parameters
+
+Ind = [1,2,3,4,5,6];
+Ind1 = [1,2,3];    Ind2 = [4,5,6];                 
+
+par1 = Param_6wells(Ind1);         
+par2 = Param_6wells(Ind2);         
+par = Param_6wells(Ind);
+
+n_w = length(Ind);
+n_w1 = par1.n_w;   n_w2 = par2.n_w;
+
+par.GOR_val_SS = par.GOR;
+
+% global constraints
+qGLMax = 6;
+QgMax = 240; 
+
+% Prices
+pO = 1;
+pGL = 0.25;
+
+%% Initiliaze Wells Data
+
+[~,F,~] = CentralizedSimulator(par);
+
+[sys,init]   = GasLift_ODE(par);
+[sys1,init1] = GasLift_ODE(par1);
+[sys2,init2] = GasLift_ODE(par2);
+
+ymeas = full(init.zf(sys.yIndex));
+
+%% define coupling constraints
+sys1.g = vertcat(sum(sys1.u),...
+    sum(sys1.y(3*par1.n_w+1:4*par1.n_w)));  % company 1
+
+sys2.g = vertcat(sum(sys2.u),...
+    sum(sys2.y(3*par1.n_w+1:4*par1.n_w)));  % company 2
+
+%% Configure and Initilize subsystems
+
+% Company 1
+x01 = init1.xf; z01 = init1.zf; u01 = init1.u;
+data1.u(:,1) = u01;
+data1.y(:,1) = [ymeas(1:n_w1);ymeas(n_w+1:n_w+n_w1);ymeas(2*n_w+1:2*n_w+n_w1);ymeas(3*n_w+1:3*n_w+n_w1);ymeas(25:27);ymeas(31:33)];
+init1.err0 = zeros(3,1);
+
+EKF1 = EKF_setup(sys1);
+init1.xk_hat  = [x01;par1.GOR];
+init1.Pk = EKF1.Pk;
+
+% Company 2
+x02 = init2.xf; z02 = init2.zf; u02 = init2.u;
+data2.u(:,1) = u02;
+data2.y(:,1) = [ymeas(n_w1+1:n_w);ymeas(n_w+n_w1+1:2*n_w);ymeas(2*n_w+n_w1+1:3*n_w);ymeas(3*n_w+n_w1+1:4*n_w);ymeas(28:30);ymeas(34:36)];
+init2.err0 = zeros(3,1);
+
+EKF2 = EKF_setup(sys2);
+init2.xk_hat  = [x02;par2.GOR];
+init2.Pk = EKF2.Pk;
+
+%% Initialize Master Coordinator
+
+public.lambda_wgl(1) = 1;     public.lambda_wpg(1) = 0;
+
+public.w_gl1_opt(1) = sum(data1.u(:,1));
+public.w_gl2_opt(1) = sum(data2.u(:,1));
+public.residual(1) = 0;
+rho = 0.08;
+
+%% Closed Loop simulation
+
+h = waitbar(0,'Simulation in Progress...');
+for sim_k = 1:nIter
+    waitbar(sim_k/nIter)
+    
+    % Master Problem
+    public = MasterCoordinator(public);
+    
+    % Subsystem 1
+    [data1,init1] = SubsystemEstimator(EKF1,data1,public,init1);
+    [data1,init1] = PID_control(data1,init1);
+    
+    % Subsystem 2
+    [data2,init2] = SubsystemEstimator(EKF2,data2,public,init2);
+    [data2,init2] = PID_control(data2,init2);
+    
+    % Plant simulator
+    init.u = [data1.u(:,sim_k+1);data2.u(:,sim_k+1)];
+    [data1,data2,public,init] = PlantSimulator(F,init,data1,data2,public,par,sys);
+    
+end
+
+data.t = 1:ts:ts*nIter;
+data.nIter = nIter;
+data.data1 = data1;
+data.data2 = data2;
+data.public = public;
+
+close(h);
+
+save('Data/data','data')
+
+plotscript(data)
