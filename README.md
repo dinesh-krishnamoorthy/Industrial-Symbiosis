@@ -6,11 +6,11 @@ The folder **Feedback_DistRTO_AL** consists the source code for the simulation r
 * Krishnamoorthy, D., 2021. A Distributed Feedback-based Online Process Optimization Framework for Optimal Resource Sharing. J. Proc. Control, Vol 97, p.72-83.
 
 ### Highlights
-*A distributed feedback-based RTO framework, where the economic objectives are translated into control objectives.
+* A distributed feedback-based RTO framework, where the economic objectives are translated into control objectives.
 
-*Self-optimizing controlled variables for the subproblems are expressed as a function of the shadow price.
+* Self-optimizing controlled variables for the subproblems are expressed as a function of the shadow price.
 
-*Convergence analysis of the distributed feedback-based RTO framework.
+* Convergence analysis of the distributed feedback-based RTO framework.
 
 ![](DFRTO.png)
 
