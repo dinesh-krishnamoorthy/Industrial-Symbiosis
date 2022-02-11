@@ -6,9 +6,10 @@ addpath(genpath(pwd))
 import casadi.*
 
 %% Simulation setup
-global pO pGL ts sim_k qGLMax QgMax rho
+global pO pGL ts sim_k qGLMax QgMax rho tSim
 
 ts = 1;     % Sampling time in seconds
+tSim = ts;
 T_sim = 10; % Simulation time in hours
 
 nIter = T_sim*3600/ts;
